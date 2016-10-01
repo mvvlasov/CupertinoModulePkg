@@ -55,6 +55,7 @@
 [Packages]
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
+  CupertinoModulePkg/CupertinoModulePkg.dec
   EfiMiscPkg/EfiMiscPkg.dec
   ApplePkg/ApplePkg.dec
 
@@ -96,7 +97,8 @@
   gEfiKeyboardInfoProtocolGuid                  ## SOMETIMES_PRODUCES
   
 [FeaturePcd]
-  gEfiMdeModulePkgTokenSpaceGuid.PcdDisableDefaultKeyboardLayoutInUsbKbDriver ## CONSUMES
+  gEfiMdeModulePkgTokenSpaceGuid.PcdDisableDefaultKeyboardLayoutInUsbKbDriver          ## CONSUMES
+  gCupertinoModulePkgTokenSpaceGuid.PcdEnableDisconnectOnExitBootServicesInUsbKbDriver ## CONSUMES
 
 # [Event]
 # EVENT_TYPE_RELATIVE_TIMER        ## CONSUMES

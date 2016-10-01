@@ -163,7 +163,14 @@ typedef struct {
   USB_NS_KEY                        *CurrentNsKey;
   EFI_KEY_DESCRIPTOR                *mKeyConvertionTable;
   EFI_EVENT                         KeyboardLayoutEvent;
+
+  EFI_EVENT                         ExitBootServicesEvent;
 } USB_KB_DEV;
+
+#define SIZE_OF_USB_KB_DEV                                          \
+  (PcdGetBool (PcdEnableDisconnectOnExitBootServicesInUsbKbDriver)  \
+    ? sizeof (USB_KB_DEV)                                           \
+    : OFFSET_OF (USB_KB_DEV, ExitBootServicesEvent))                \
 
 //
 // Global Variables

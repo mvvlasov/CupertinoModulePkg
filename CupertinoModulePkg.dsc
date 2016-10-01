@@ -89,3 +89,7 @@
 
 [Components]
   CupertinoModulePkg/Driver/UsbKbDxe/UsbKbDxe.inf
+
+[PcdsFixedAtBuild]
+  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x0f
+  gEfiMdePkgTokenSpaceGuid.PcdReportStatusCodePropertyMask|0x06

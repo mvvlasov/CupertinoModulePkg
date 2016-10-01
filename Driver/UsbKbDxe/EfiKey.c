@@ -24,15 +24,17 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <Library/DevicePathLib.h>
 
-APPLE_PLATFORM_INFO_DATABASE_PROTOCOL *mPlatformInfo = NULL;
+STATIC APPLE_PLATFORM_INFO_DATABASE_PROTOCOL *mPlatformInfo = NULL;
 
-UINT8 mCountryCode = 0;
+STATIC UINT8 mCountryCode = 0;
 
-BOOLEAN mIdsInitialized = FALSE;
+STATIC BOOLEAN mIdsInitialized = FALSE;
 
-UINT16 mIdVendor = 0;
+STATIC UINT16 mIdVendor = 0;
 
-UINT16 mIdProduct = 0;
+STATIC UINT16 mIdProduct = 0;
+
+STATIC BOOLEAN mExitingBootServices = FALSE;
 
 EFI_STATUS
 EFIAPI
@@ -225,7 +227,7 @@ USBKeyboardDriverBindingStart (
     AppleKeyMapDb = NULL;
   }
 
-  UsbKeyboardDevice = AllocateZeroPool (sizeof (USB_KB_DEV));
+  UsbKeyboardDevice = AllocateZeroPool (SIZE_OF_USB_KB_DEV);
   ASSERT (UsbKeyboardDevice != NULL);
 
   //
@@ -559,6 +561,17 @@ Skip:
     );
 
   gBS->RestoreTPL (OldTpl);
+
+  if (PcdGetBool (PcdEnableDisconnectOnExitBootServicesInUsbKbDriver)) {
+    Status = gBS->CreateEvent (
+                    EVT_SIGNAL_EXIT_BOOT_SERVICES,
+                    TPL_NOTIFY,
+                    USBKeyboardExitBootServices,
+                    UsbKeyboardDevice,
+                    &UsbKeyboardDevice->ExitBootServicesEvent
+                    );
+  }
+
   return EFI_SUCCESS;
 
 //
@@ -578,6 +591,10 @@ ErrorExit:
     if (UsbKeyboardDevice->KeyboardLayoutEvent != NULL) {
       ReleaseKeyboardLayoutResources (UsbKeyboardDevice);
       gBS->CloseEvent (UsbKeyboardDevice->KeyboardLayoutEvent);
+    }
+    if (PcdGetBool (PcdEnableDisconnectOnExitBootServicesInUsbKbDriver)
+     && (UsbKeyboardDevice->ExitBootServicesEvent != NULL)) {
+      gBS->CloseEvent (UsbKeyboardDevice->ExitBootServicesEvent);
     }
     FreePool (UsbKeyboardDevice);
     UsbKeyboardDevice = NULL;
@@ -680,42 +697,50 @@ USBKeyboardDriverBindingStop (
          Controller
          );
 
-  if (UsbKeyboardDevice->KeyMapDb != NULL) {
-    UsbKeyboardDevice->KeyMapDb->RemoveKeyStrokesBuffer (
-                                   UsbKeyboardDevice->KeyMapDb,
-                                   UsbKeyboardDevice->KeyMapDbIndex
-                                   );
+  if (!PcdGetBool (PcdEnableDisconnectOnExitBootServicesInUsbKbDriver)
+   || !mExitingBootServices) {
+    if (UsbKeyboardDevice->KeyMapDb != NULL) {
+      UsbKeyboardDevice->KeyMapDb->RemoveKeyStrokesBuffer (
+                                     UsbKeyboardDevice->KeyMapDb,
+                                     UsbKeyboardDevice->KeyMapDbIndex
+                                     );
+    }
+
+    Status = gBS->UninstallMultipleProtocolInterfaces (
+                    Controller,
+                    &gEfiSimpleTextInProtocolGuid,
+                    &UsbKeyboardDevice->SimpleInput,
+                    &gEfiSimpleTextInputExProtocolGuid,
+                    &UsbKeyboardDevice->SimpleInputEx,
+                    NULL
+                    );
+    //
+    // Free all resources.
+    //
+    gBS->CloseEvent (UsbKeyboardDevice->TimerEvent);
+    gBS->CloseEvent (UsbKeyboardDevice->RepeatTimer);
+    gBS->CloseEvent (UsbKeyboardDevice->DelayedRecoveryEvent);
+    gBS->CloseEvent (UsbKeyboardDevice->SimpleInput.WaitForKey);
+    gBS->CloseEvent (UsbKeyboardDevice->SimpleInputEx.WaitForKeyEx);
+
+    if (PcdGetBool (PcdEnableDisconnectOnExitBootServicesInUsbKbDriver)) {
+      gBS->CloseEvent (UsbKeyboardDevice->ExitBootServicesEvent);
+    }
+
+    KbdFreeNotifyList (&UsbKeyboardDevice->NotifyList);
+
+    ReleaseKeyboardLayoutResources (UsbKeyboardDevice);
+    gBS->CloseEvent (UsbKeyboardDevice->KeyboardLayoutEvent);
+
+    if (UsbKeyboardDevice->ControllerNameTable != NULL) {
+      FreeUnicodeStringTable (UsbKeyboardDevice->ControllerNameTable);
+    }
+
+    DestroyQueue (&UsbKeyboardDevice->UsbKeyQueue);
+    DestroyQueue (&UsbKeyboardDevice->EfiKeyQueue);
+
+    FreePool (UsbKeyboardDevice);
   }
-
-  Status = gBS->UninstallMultipleProtocolInterfaces (
-                  Controller,
-                  &gEfiSimpleTextInProtocolGuid,
-                  &UsbKeyboardDevice->SimpleInput,
-                  &gEfiSimpleTextInputExProtocolGuid,
-                  &UsbKeyboardDevice->SimpleInputEx,
-                  NULL
-                  );
-  //
-  // Free all resources.
-  //
-  gBS->CloseEvent (UsbKeyboardDevice->TimerEvent);
-  gBS->CloseEvent (UsbKeyboardDevice->RepeatTimer);
-  gBS->CloseEvent (UsbKeyboardDevice->DelayedRecoveryEvent);
-  gBS->CloseEvent (UsbKeyboardDevice->SimpleInput.WaitForKey);
-  gBS->CloseEvent (UsbKeyboardDevice->SimpleInputEx.WaitForKeyEx);
-  KbdFreeNotifyList (&UsbKeyboardDevice->NotifyList);
-
-  ReleaseKeyboardLayoutResources (UsbKeyboardDevice);
-  gBS->CloseEvent (UsbKeyboardDevice->KeyboardLayoutEvent);
-
-  if (UsbKeyboardDevice->ControllerNameTable != NULL) {
-    FreeUnicodeStringTable (UsbKeyboardDevice->ControllerNameTable);
-  }
-
-  DestroyQueue (&UsbKeyboardDevice->UsbKeyQueue);
-  DestroyQueue (&UsbKeyboardDevice->EfiKeyQueue);
-
-  FreePool (UsbKeyboardDevice);
 
   return Status;
 }
@@ -973,6 +998,32 @@ USBKeyboardTimerHandler (
   // Insert to the EFI Key queue
   //
   Enqueue (&UsbKeyboardDevice->EfiKeyQueue, &KeyData, sizeof (KeyData));
+}
+
+/**
+  ExitBootServices handler to disconnect from the device.
+
+  @param  Event                    Indicates the event that invoke this function.
+  @param  Context                  Indicates the calling context.
+**/
+VOID
+EFIAPI
+USBKeyboardExitBootServices (
+  IN  EFI_EVENT                 Event,
+  IN  VOID                      *Context
+  )
+{
+  USB_KB_DEV                    *UsbKeyboardDevice;
+
+  UsbKeyboardDevice = (USB_KB_DEV *) Context;
+
+  mExitingBootServices = TRUE;
+
+  gBS->DisconnectController (
+         UsbKeyboardDevice->ControllerHandle,
+         gImageHandle,
+         NULL
+         );
 }
 
 /**
