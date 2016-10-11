@@ -1092,7 +1092,7 @@ KeyboardHandler (
   //
   for (Index = 2; Index < 8; Index++) {
     if (USBKBD_VALID_KEYCODE (CurKeyCodeBuffer[Index])) {
-      Keys[NumberOfKeys] = APPLE_HID_USB_KB_KP_USGAE (CurKeyCodeBuffer[Index]);
+      Keys[NumberOfKeys] = APPLE_HID_USB_KB_KP_USAGE (CurKeyCodeBuffer[Index]);
       ++NumberOfKeys;
     }
   }

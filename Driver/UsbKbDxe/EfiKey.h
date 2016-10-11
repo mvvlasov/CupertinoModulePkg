@@ -609,5 +609,18 @@ USBKeyboardTimerHandler (
   IN  VOID                      *Context
   );
 
+/**
+  ExitBootServices handler to disconnect from the device.
+
+  @param  Event                    Indicates the event that invoke this function.
+  @param  Context                  Indicates the calling context.
+**/
+VOID
+EFIAPI
+USBKeyboardExitBootServices (
+  IN  EFI_EVENT                 Event,
+  IN  VOID                      *Context
+  );
+
 #endif
 
