@@ -99,7 +99,7 @@ UsbKbAppleKeyMapDbInstallNotify (
   Status = gBS->LocateProtocol (
                   &gAppleKeyMapDatabaseProtocolGuid,
                   mAppleKeyMapDbRegistration,
-                  &AppleKeyMapDb
+                  (VOID **)&AppleKeyMapDb
                   );
   ASSERT_EFI_ERROR (Status);
 
