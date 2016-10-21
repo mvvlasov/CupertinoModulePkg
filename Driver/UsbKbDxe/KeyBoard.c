@@ -1085,7 +1085,7 @@ KeyboardHandler (
   // Parse the modifier key, which is the first byte of keyboard input report.
   //
   CurModifierMap  = CurKeyCodeBuffer[0];
-  NumberOfKeys          = 0;
+  NumberOfKeys    = 0;
 
   //
   // Pass the data to the Apple protocol

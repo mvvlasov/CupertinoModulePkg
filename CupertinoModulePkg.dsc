@@ -48,7 +48,7 @@
   HiiLib|MdeModulePkg/Library/UefiHiiLib/UefiHiiLib.inf
   DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
 
-    #
+  #
   # Generic Modules
   #
   UefiUsbLib|MdePkg/Library/UefiUsbLib/UefiUsbLib.inf
@@ -92,4 +92,4 @@
 
 [PcdsFixedAtBuild]
   gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x0f
-  gEfiMdePkgTokenSpaceGuid.PcdReportStatusCodePropertyMask|0x06
+  gEfiMdePkgTokenSpaceGuid.PcdReportStatusCodePropertyMask|0x07

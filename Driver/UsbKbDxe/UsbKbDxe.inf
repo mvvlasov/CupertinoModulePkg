@@ -48,6 +48,8 @@
 [Sources]
   EfiKey.c
   EfiKey.h
+  AppleKey.c
+  AppleKey.h
   KeyBoard.c
   ComponentName.c
   KeyBoard.h
