@@ -36,4 +36,11 @@
   #   TRUE  - USB KeyBoard Driver will disconnect itself.<BR>
   #   FALSE - USB KeyBoard Driver will not disconnect itself.<BR>
   # @Prompt Disconnect the USB KeyBoard Driver when exitting Boot Services.
-  gCupertinoModulePkgTokenSpaceGuid.PcdEnableDisconnectOnExitBootServicesInUsbKbDriver|FALSE|BOOLEAN|0x00000001
+  gCupertinoModulePkgTokenSpaceGuid.PcdEnableDisconnectOnExitBootServicesInUsbKbDriver|FALSE|BOOLEAN|0x00000000
+
+  ## Indicates if USB KeyBoard Driver registers a Apple KeyMap Database protocol installation notify.
+  ## Services event is triggered.<BR><BR>
+  #   TRUE  - USB KeyBoard Driver will registers a protocol installation notify.<BR>
+  #   FALSE - USB KeyBoard Driver will registers a protocol installation notify.<BR>
+  # @Prompt Register a protocol installation notify for Apple KeyMap Database when not found initially.
+  gCupertinoModulePkgTokenSpaceGuid.PcdNotifyAppleKeyMapDbInUsbKbDriver|FALSE|BOOLEAN|0x00000001
