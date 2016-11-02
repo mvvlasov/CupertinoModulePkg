@@ -44,3 +44,10 @@
   #   FALSE - USB KeyBoard Driver will registers a protocol installation notify.<BR>
   # @Prompt Register a protocol installation notify for Apple KeyMap Database when not found initially.
   gCupertinoModulePkgTokenSpaceGuid.PcdNotifyAppleKeyMapDbInUsbKbDriver|FALSE|BOOLEAN|0x00000001
+
+  ## Indicates if USB KeyBoard Driver disconnects other drivers to take precedence.
+  ## Services event is triggered.<BR><BR>
+  #   TRUE  - USB KeyBoard Driver will disconnect other drivers.<BR>
+  #   FALSE - USB KeyBoard Driver will not disconnect other drivers.<BR>
+  # @Prompt Disconnect other drivers for the USB KeyBoard Driver to take precedence over them.
+  gCupertinoModulePkgTokenSpaceGuid.PcdUsbKbDriverTakePrecedence|FALSE|BOOLEAN|0x00000002
