@@ -1,7 +1,7 @@
 /** @file
   Produces Keyboard Info Protocol.
 
-  Copyright (C) 2016 CupertinoNet.  All rights reserved.<BR>
+  Copyright (C) 2016 - 2017, CupertinoNet.  All rights reserved.<BR>
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -221,7 +221,7 @@ UsbKbInstallKeyboardDeviceInfoProtocol (
         mIdProduct      = UsbKeyboardDevice->DeviceDescriptor.IdProduct;
         mIdsInitialized = TRUE;
 
-        // FIXME: This is never uninstalled.
+        // TODO: This is never uninstalled.
 
         gBS->InstallProtocolInterface (
                NULL,

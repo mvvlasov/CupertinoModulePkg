@@ -1,7 +1,7 @@
 /** @file
   Header file for Apple-specific USB Keyboard Driver's Data Structures.
 
-  Copyright (C) 2016 CupertinoNet.  All rights reserved.<BR>
+  Copyright (C) 2016 - 2017, CupertinoNet.  All rights reserved.<BR>
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 **/
-#ifndef _APPLE_USB_KB_H_
-#define _APPLE_USB_KB_H_
+#ifndef APPLE_USB_KB_H_
+#define APPLE_USB_KB_H_
 
 #include "EfiKey.h"
 
@@ -54,5 +54,5 @@ UsbKbFreeAppleKeyMapDb (
   IN USB_KB_DEV  *UsbKeyboardDevice
   );
 
-#endif
+#endif // APPLE_USB_KB_H_
 
