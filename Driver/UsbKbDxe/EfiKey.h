@@ -1,7 +1,7 @@
 /** @file
   Header file for USB Keyboard Driver's Data Structures.
 
-Copyright (c) 2004 - 2012, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2004 - 2016, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -120,6 +120,7 @@ typedef struct {
 
   USB_SIMPLE_QUEUE                  UsbKeyQueue;
   USB_SIMPLE_QUEUE                  EfiKeyQueue;
+  USB_SIMPLE_QUEUE                  EfiKeyQueueForNotify;
   BOOLEAN                           CtrlOn;
   BOOLEAN                           AltOn;
   BOOLEAN                           ShiftOn;
@@ -155,6 +156,7 @@ typedef struct {
   // Notification function list
   //
   LIST_ENTRY                        NotifyList;
+  EFI_EVENT                         KeyNotifyProcessEvent;
 
   //
   // Non-spacing key list
@@ -622,5 +624,16 @@ USBKeyboardExitBootServices (
   IN  VOID                      *Context
   );
 
-#endif
+/**
+  Process key notify.
+  @param  Event                 Indicates the event that invoke this function.
+  @param  Context               Indicates the calling context.
+**/
+VOID
+EFIAPI
+KeyNotifyProcessHandler (
+  IN  EFI_EVENT                 Event,
+  IN  VOID                      *Context
+  );
 
+#endif

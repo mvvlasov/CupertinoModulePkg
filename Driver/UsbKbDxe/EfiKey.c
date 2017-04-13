@@ -2,7 +2,7 @@
   USB Keyboard Driver that manages USB keyboard and produces Simple Text Input
   Protocol and Simple Text Input Ex Protocol.
 
-Copyright (c) 2004 - 2012, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2004 - 2016, Intel Corporation. All rights reserved.<BR>
 Portions Copyright (C) 2016, CupertinoNet. All rights reserved.<BR>
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
@@ -361,6 +361,17 @@ USBKeyboardDriverBindingStart (
     goto ErrorExit;
   }
 
+  Status = gBS->CreateEvent (
+                  EVT_NOTIFY_SIGNAL,
+                  TPL_CALLBACK,
+                  KeyNotifyProcessHandler,
+                  UsbKeyboardDevice,
+                  &UsbKeyboardDevice->KeyNotifyProcessEvent
+                  );
+  if (EFI_ERROR (Status)) {
+    goto ErrorExit;
+  }
+
   UsbKbInstallKeyboardDeviceInfoProtocol (UsbKeyboardDevice, UsbIo);
 
   //
@@ -490,6 +501,9 @@ ErrorExit:
     if (UsbKeyboardDevice->SimpleInputEx.WaitForKeyEx != NULL) {
       gBS->CloseEvent (UsbKeyboardDevice->SimpleInputEx.WaitForKeyEx);
     }
+    if (UsbKeyboardDevice->KeyNotifyProcessEvent != NULL) {
+      gBS->CloseEvent (UsbKeyboardDevice->KeyNotifyProcessEvent);
+    }
     if (UsbKeyboardDevice->KeyboardLayoutEvent != NULL) {
       ReleaseKeyboardLayoutResources (UsbKeyboardDevice);
       gBS->CloseEvent (UsbKeyboardDevice->KeyboardLayoutEvent);
@@ -615,6 +629,7 @@ USBKeyboardDriverBindingStop (
     gBS->CloseEvent (UsbKeyboardDevice->DelayedRecoveryEvent);
     gBS->CloseEvent (UsbKeyboardDevice->SimpleInput.WaitForKey);
     gBS->CloseEvent (UsbKeyboardDevice->SimpleInputEx.WaitForKeyEx);
+    gBS->CloseEvent (UsbKeyboardDevice->KeyNotifyProcessEvent);
 
     if (PcdGetBool (PcdEnableDisconnectOnExitBootServicesInUsbKbDriver)) {
       gBS->CloseEvent (UsbKeyboardDevice->ExitBootServicesEvent);
@@ -631,6 +646,7 @@ USBKeyboardDriverBindingStop (
 
     DestroyQueue (&UsbKeyboardDevice->UsbKeyQueue);
     DestroyQueue (&UsbKeyboardDevice->EfiKeyQueue);
+    DestroyQueue (&UsbKeyboardDevice->EfiKeyQueueForNotify);
 
     FreePool (UsbKeyboardDevice);
   }
@@ -720,6 +736,7 @@ USBKeyboardReset (
     //
     InitQueue (&UsbKeyboardDevice->UsbKeyQueue, sizeof (USB_KEY));
     InitQueue (&UsbKeyboardDevice->EfiKeyQueue, sizeof (EFI_KEY_DATA));
+    InitQueue (&UsbKeyboardDevice->EfiKeyQueueForNotify, sizeof (EFI_KEY_DATA));
 
     return EFI_SUCCESS;
   }
@@ -1269,3 +1286,50 @@ USBKeyboardUnregisterKeyNotify (
   return EFI_INVALID_PARAMETER;
 }
 
+/**
+  Process key notify.
+  @param  Event                 Indicates the event that invoke this function.
+  @param  Context               Indicates the calling context.
+**/
+VOID
+EFIAPI
+KeyNotifyProcessHandler (
+  IN  EFI_EVENT                 Event,
+  IN  VOID                      *Context
+  )
+{
+  EFI_STATUS                    Status;
+  USB_KB_DEV                    *UsbKeyboardDevice;
+  EFI_KEY_DATA                  KeyData;
+  LIST_ENTRY                    *Link;
+  LIST_ENTRY                    *NotifyList;
+  KEYBOARD_CONSOLE_IN_EX_NOTIFY *CurrentNotify;
+  EFI_TPL                       OldTpl;
+
+  UsbKeyboardDevice = (USB_KB_DEV *) Context;
+
+  //
+  // Invoke notification functions.
+  //
+  NotifyList = &UsbKeyboardDevice->NotifyList;
+  while (TRUE) {
+    //
+    // Enter critical section
+    //  
+    OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
+    Status = Dequeue (&UsbKeyboardDevice->EfiKeyQueueForNotify, &KeyData, sizeof (KeyData));
+    //
+    // Leave critical section
+    //
+    gBS->RestoreTPL (OldTpl);
+    if (EFI_ERROR (Status)) {
+      break;
+    }
+    for (Link = GetFirstNode (NotifyList); !IsNull (NotifyList, Link); Link = GetNextNode (NotifyList, Link)) {
+      CurrentNotify = CR (Link, KEYBOARD_CONSOLE_IN_EX_NOTIFY, NotifyEntry, USB_KB_CONSOLE_IN_EX_NOTIFY_SIGNATURE);
+      if (IsKeyRegistered (&CurrentNotify->KeyData, &KeyData)) {
+        CurrentNotify->KeyNotificationFn (&KeyData);
+      }
+    }
+  }
+}
