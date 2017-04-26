@@ -127,6 +127,7 @@ UsbKbLocateAppleKeyMapDb (
   if (!EFI_ERROR (Status)) {
     UsbKbSetAppleKeyMapDb (UsbKeyboardDevice, AppleKeyMapDb);
   } else if (PcdGetBool (PcdNotifyAppleKeyMapDbInUsbKbDriver)) {
+    // TODO: Event is not closed.
     EfiCreateProtocolNotifyEvent (
       &gAppleKeyMapDatabaseProtocolGuid,
       TPL_NOTIFY,
