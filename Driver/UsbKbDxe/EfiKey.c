@@ -390,12 +390,16 @@ USBKeyboardDriverBindingStart (
                   NULL
                   );
   if (EFI_ERROR (Status)) {
+    UsbKbUninstallKeyboardDeviceInfoProtocol (UsbKeyboardDevice);
+
     goto ErrorExit;
   }
 
   UsbKeyboardDevice->ControllerHandle = Controller;
   Status = InitKeyboardLayout (UsbKeyboardDevice);
   if (EFI_ERROR (Status)) {
+    UsbKbUninstallKeyboardDeviceInfoProtocol (UsbKeyboardDevice);
+
     gBS->UninstallMultipleProtocolInterfaces (
       Controller,
       &gEfiSimpleTextInProtocolGuid,
@@ -416,6 +420,8 @@ USBKeyboardDriverBindingStart (
                                             TRUE
                                             );
   if (EFI_ERROR (Status)) {
+    UsbKbUninstallKeyboardDeviceInfoProtocol (UsbKeyboardDevice);
+
     gBS->UninstallMultipleProtocolInterfaces (
            Controller,
            &gEfiSimpleTextInProtocolGuid,
@@ -445,6 +451,8 @@ USBKeyboardDriverBindingStart (
                     );
 
   if (EFI_ERROR (Status)) {
+    UsbKbUninstallKeyboardDeviceInfoProtocol (UsbKeyboardDevice);
+
     gBS->UninstallMultipleProtocolInterfaces (
            Controller,
            &gEfiSimpleTextInProtocolGuid,
@@ -612,6 +620,7 @@ USBKeyboardDriverBindingStop (
   if (!PcdGetBool (PcdEnableDisconnectOnExitBootServicesInUsbKbDriver)
    || !mExitingBootServices) {
     UsbKbFreeAppleKeyMapDb (UsbKeyboardDevice);
+    UsbKbUninstallKeyboardDeviceInfoProtocol (UsbKeyboardDevice);
 
     Status = gBS->UninstallMultipleProtocolInterfaces (
                     Controller,

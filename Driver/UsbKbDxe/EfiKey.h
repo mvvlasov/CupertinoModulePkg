@@ -25,6 +25,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <Protocol/UsbIo.h>
 #include <Protocol/DevicePath.h>
 #include <Protocol/AppleKeyMapDatabase.h>
+#include <Protocol/ApplePlatformInfoDatabase.h>
 
 #include <Guid/HiiKeyBoardLayout.h>
 #include <Guid/UsbKeyBoardLayout.h>
@@ -110,11 +111,8 @@ typedef struct {
   EFI_EVENT                         DelayedRecoveryEvent;
   EFI_SIMPLE_TEXT_INPUT_PROTOCOL    SimpleInput;
   EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL SimpleInputEx;
-  APPLE_KEY_MAP_DATABASE_PROTOCOL   *KeyMapDb;
-  UINTN                             KeyMapDbIndex;
   EFI_USB_IO_PROTOCOL               *UsbIo;
 
-  EFI_USB_DEVICE_DESCRIPTOR         DeviceDescriptor;
   EFI_USB_INTERFACE_DESCRIPTOR      InterfaceDescriptor;
   EFI_USB_ENDPOINT_DESCRIPTOR       IntEndpointDescriptor;
 
@@ -163,8 +161,18 @@ typedef struct {
   //
   LIST_ENTRY                        NsKeyList;
   USB_NS_KEY                        *CurrentNsKey;
-  EFI_KEY_DESCRIPTOR                *mKeyConvertionTable;
+  EFI_KEY_DESCRIPTOR                *KeyConvertionTable;
   EFI_EVENT                         KeyboardLayoutEvent;
+
+  // CupertinoNet
+  APPLE_KEY_MAP_DATABASE_PROTOCOL   *KeyMapDb;
+  UINTN                             KeyMapDbIndex;
+
+  EFI_USB_DEVICE_DESCRIPTOR         DeviceDescriptor;
+
+  APPLE_PLATFORM_INFO_DATABASE_PROTOCOL *PlatformInfo;
+
+  EFI_EVENT                         KeyMapInstallNotifyEvent;
 
   EFI_EVENT                         ExitBootServicesEvent;
 } USB_KB_DEV;

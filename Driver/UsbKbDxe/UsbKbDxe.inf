@@ -73,6 +73,8 @@
   PcdLib
   UefiUsbLib
   HiiLib
+  EfiBootServicesLib
+  MiscEventLib
 
 [Guids]
   #

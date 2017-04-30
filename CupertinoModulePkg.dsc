@@ -59,6 +59,10 @@
   #
   DebugLib|MdePkg/Library/BaseDebugLibNull/BaseDebugLibNull.inf
   ReportStatusCodeLib|MdePkg/Library/BaseReportStatusCodeLibNull/BaseReportStatusCodeLibNull.inf 
+
+  EfiBootServicesLib|EfiMiscPkg/Library/EfiBootServicesLib/EfiBootServicesLib.inf
+  MiscEventLib|EfiMiscPkg/Library/MiscEventLib/MiscEventLib.inf
+  MiscRuntimeLib|EfiMiscPkg/Library/MiscRuntimeLibNull/MiscRuntimeLibNull.inf
   
 [LibraryClasses.Common.PEI_CORE]
   MemoryAllocationLib|MdePkg/Library/PeiMemoryAllocationLib/PeiMemoryAllocationLib.inf

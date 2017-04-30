@@ -498,7 +498,7 @@ GetKeyDescriptor (
     Index = (UINT8) (KeyCode - 0xe0 + NUMBER_OF_VALID_NON_MODIFIER_USB_KEYCODE);
   }
 
-  return &UsbKeyboardDevice->mKeyConvertionTable[Index];
+  return &UsbKeyboardDevice->KeyConvertionTable[Index];
 }
 
 /**
@@ -619,11 +619,11 @@ SetKeyboardLayoutEvent (
   }
 
   //
-  // Re-allocate resource for mKeyConvertionTable
+  // Re-allocate resource for KeyConvertionTable
   //
   ReleaseKeyboardLayoutResources (UsbKeyboardDevice);
-  UsbKeyboardDevice->mKeyConvertionTable = AllocateZeroPool ((NUMBER_OF_VALID_USB_KEYCODE) * sizeof (EFI_KEY_DESCRIPTOR));
-  ASSERT (UsbKeyboardDevice->mKeyConvertionTable != NULL);
+  UsbKeyboardDevice->KeyConvertionTable = AllocateZeroPool ((NUMBER_OF_VALID_USB_KEYCODE) * sizeof (EFI_KEY_DESCRIPTOR));
+  ASSERT (UsbKeyboardDevice->KeyConvertionTable != NULL);
 
   //
   // Traverse the list of key descriptors following the header of EFI_HII_KEYBOARD_LAYOUT
@@ -636,7 +636,7 @@ SetKeyboardLayoutEvent (
     CopyMem (&TempKey, KeyDescriptor, sizeof (EFI_KEY_DESCRIPTOR));
 
     //
-    // Fill the key into mKeyConvertionTable, whose index is calculated from USB keycode.
+    // Fill the key into KeyConvertionTable, whose index is calculated from USB keycode.
     //
     KeyCode = gEfiKeyToUsbKeyCodeConvertionTable [(UINT8) (TempKey.Key)];
     TableEntry = GetKeyDescriptor (UsbKeyboardDevice, KeyCode);
@@ -711,10 +711,10 @@ ReleaseKeyboardLayoutResources (
   USB_NS_KEY      *UsbNsKey;
   LIST_ENTRY      *Link;
 
-  if (UsbKeyboardDevice->mKeyConvertionTable != NULL) {
-    FreePool (UsbKeyboardDevice->mKeyConvertionTable);
+  if (UsbKeyboardDevice->KeyConvertionTable != NULL) {
+    FreePool (UsbKeyboardDevice->KeyConvertionTable);
   }
-  UsbKeyboardDevice->mKeyConvertionTable = NULL;
+  UsbKeyboardDevice->KeyConvertionTable = NULL;
 
   while (!IsListEmpty (&UsbKeyboardDevice->NsKeyList)) {
     Link = GetFirstNode (&UsbKeyboardDevice->NsKeyList);
@@ -749,8 +749,8 @@ InitKeyboardLayout (
   EFI_HII_KEYBOARD_LAYOUT   *KeyboardLayout;
   EFI_STATUS                Status;
 
-  UsbKeyboardDevice->mKeyConvertionTable = AllocateZeroPool ((NUMBER_OF_VALID_USB_KEYCODE) * sizeof (EFI_KEY_DESCRIPTOR));
-  ASSERT (UsbKeyboardDevice->mKeyConvertionTable != NULL);
+  UsbKeyboardDevice->KeyConvertionTable = AllocateZeroPool ((NUMBER_OF_VALID_USB_KEYCODE) * sizeof (EFI_KEY_DESCRIPTOR));
+  ASSERT (UsbKeyboardDevice->KeyConvertionTable != NULL);
 
   InitializeListHead (&UsbKeyboardDevice->NsKeyList);
   UsbKeyboardDevice->CurrentNsKey = NULL;

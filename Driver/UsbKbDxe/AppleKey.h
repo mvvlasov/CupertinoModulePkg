@@ -45,6 +45,11 @@ UsbKbInstallKeyboardDeviceInfoProtocol (
   );
 
 VOID
+UsbKbUninstallKeyboardDeviceInfoProtocol (
+  IN USB_KB_DEV  *UsbKeyboardDevice
+  );
+
+VOID
 UsbKbLocateAppleKeyMapDb (
   IN USB_KB_DEV  *UsbKeyboardDevice
   );

@@ -20,21 +20,30 @@
 #include "AppleKey.h"
 
 #include <Library/DevicePathLib.h>
+#include <Library/EfiBootServicesLib.h>
+#include <Library/MiscEventLib.h>
 
-STATIC APPLE_PLATFORM_INFO_DATABASE_PROTOCOL *mPlatformInfo = NULL;
+// ASSERT_USB_KB_DEV_VALID
+#define ASSERT_USB_KB_DEV_VALID(UsbKbDev)                                  \
+  do {                                                                     \
+    ASSERT (UsbKbDev != NULL);                                             \
+    ASSERT (((USB_KB_DEV *)UsbKbDev)->Signature == USB_KB_DEV_SIGNATURE);  \
+  } while (FALSE)
 
-STATIC BOOLEAN mIdsInitialized = FALSE;
-
+// mIdVendor
 STATIC UINT16 mIdVendor = 0;
 
+// mIdProduct
 STATIC UINT16 mIdProduct = 0;
 
+//mCountryCode
 STATIC UINT8 mCountryCode = 0;
 
+// mAppleKeyMapDbRegistration
 STATIC VOID *mAppleKeyMapDbRegistration = NULL;
 
 // mKeyboardInfo
-EFI_KEYBOARD_INFO_PROTOCOL mKeyboardInfo = {
+STATIC EFI_KEYBOARD_INFO_PROTOCOL mKeyboardInfo = {
   UsbKbGetKeyboardDeviceInfo
 };
 
@@ -62,7 +71,7 @@ UsbKbSetAppleKeyMapDb (
 {
   EFI_STATUS Status;
 
-  ASSERT (UsbKeyboardDevice != NULL);
+  ASSERT_USB_KB_DEV_VALID (UsbKeyboardDevice);
   ASSERT (AppleKeyMapDb != NULL);
 
   Status = AppleKeyMapDb->CreateKeyStrokesBuffer (
@@ -76,8 +85,8 @@ UsbKbSetAppleKeyMapDb (
   }
 }
 
-/**
-  Protocol installation notify for Apple KeyMap Database.
+// UsbKbAppleKeyMapDbInstallNotify
+/** Protocol installation notify for Apple KeyMap Database.
 
   @param[in] Event    Indicates the event that invoke this function.
   @param[in] Context  Indicates the calling context.
@@ -91,23 +100,30 @@ UsbKbAppleKeyMapDbInstallNotify (
 {
   EFI_STATUS                      Status;
   APPLE_KEY_MAP_DATABASE_PROTOCOL *AppleKeyMapDb;
+  USB_KB_DEV                      *UsbKeyboardDevice;
 
   ASSERT (Event != NULL);
-  ASSERT (Context != NULL);
-  ASSERT (((USB_KB_DEV *)Context)->Signature == USB_KB_DEV_SIGNATURE);
+  ASSERT_USB_KB_DEV_VALID (Context);
+  ASSERT (((USB_KB_DEV *)Context)->KeyMapInstallNotifyEvent == Event);
 
-  Status = gBS->LocateProtocol (
-                  &gAppleKeyMapDatabaseProtocolGuid,
-                  mAppleKeyMapDbRegistration,
-                  (VOID **)&AppleKeyMapDb
-                  );
-  ASSERT_EFI_ERROR (Status);
+  Status = EfiLocateProtocol (
+             &gAppleKeyMapDatabaseProtocolGuid,
+             mAppleKeyMapDbRegistration,
+             (VOID **)&AppleKeyMapDb
+             );
 
-  UsbKbSetAppleKeyMapDb ((USB_KB_DEV *)Context, AppleKeyMapDb);
+  ASSERT (Status != EFI_NOT_FOUND);
 
-  gBS->CloseEvent (Event);
+  UsbKeyboardDevice = (USB_KB_DEV *)Context;
+
+  UsbKbSetAppleKeyMapDb (UsbKeyboardDevice, AppleKeyMapDb);
+
+  EfiCloseEvent (UsbKeyboardDevice->KeyMapInstallNotifyEvent);
+
+  UsbKeyboardDevice->KeyMapInstallNotifyEvent = NULL;
 }
 
+// UsbKbLocateAppleKeyMapDb
 VOID
 UsbKbLocateAppleKeyMapDb (
   IN USB_KB_DEV  *UsbKeyboardDevice
@@ -116,47 +132,57 @@ UsbKbLocateAppleKeyMapDb (
   EFI_STATUS                      Status;
   APPLE_KEY_MAP_DATABASE_PROTOCOL *AppleKeyMapDb;
 
-  ASSERT (UsbKeyboardDevice != NULL);
+  ASSERT_USB_KB_DEV_VALID (UsbKeyboardDevice);
 
-  Status = gBS->LocateProtocol (
-                  &gAppleKeyMapDatabaseProtocolGuid,
-                  NULL,
-                  (VOID **)&AppleKeyMapDb
-                  );
+  Status = EfiLocateProtocol (
+             &gAppleKeyMapDatabaseProtocolGuid,
+             NULL,
+             (VOID **)&AppleKeyMapDb
+             );
 
   if (!EFI_ERROR (Status)) {
     UsbKbSetAppleKeyMapDb (UsbKeyboardDevice, AppleKeyMapDb);
   } else if (PcdGetBool (PcdNotifyAppleKeyMapDbInUsbKbDriver)) {
-    // TODO: Event is not closed.
-    EfiCreateProtocolNotifyEvent (
+    UsbKeyboardDevice->KeyMapInstallNotifyEvent = MiscCreateNotifySignalEvent (
+                                                    UsbKbAppleKeyMapDbInstallNotify,
+                                                    (VOID *)UsbKeyboardDevice
+                                                    );
+
+    EfiRegisterProtocolNotify (
       &gAppleKeyMapDatabaseProtocolGuid,
-      TPL_NOTIFY,
-      UsbKbAppleKeyMapDbInstallNotify,
-      (VOID *)UsbKeyboardDevice,
+      UsbKeyboardDevice->KeyMapInstallNotifyEvent,
       &mAppleKeyMapDbRegistration
       );
   }
 }
 
+// UsbKbFreeAppleKeyMapDb
 VOID
 UsbKbFreeAppleKeyMapDb (
   IN USB_KB_DEV  *UsbKeyboardDevice
   )
 {
+  ASSERT_USB_KB_DEV_VALID (UsbKeyboardDevice);
+
   if (UsbKeyboardDevice->KeyMapDb != NULL) {
     UsbKeyboardDevice->KeyMapDb->RemoveKeyStrokesBuffer (
                                    UsbKeyboardDevice->KeyMapDb,
                                    UsbKeyboardDevice->KeyMapDbIndex
                                    );
+  } else if (UsbKeyboardDevice->KeyMapInstallNotifyEvent != NULL) {
+    EfiCloseEvent (UsbKeyboardDevice->KeyMapInstallNotifyEvent);
   }
 }
 
+// UsbKbInstallKeyboardDeviceInfoProtocol
 VOID
 UsbKbInstallKeyboardDeviceInfoProtocol (
   IN USB_KB_DEV           *UsbKeyboardDevice,
   IN EFI_USB_IO_PROTOCOL  *UsbIo
   )
 {
+  STATIC BOOLEAN IdsInitialized = FALSE;
+
   EFI_DEV_PATH_PTR       DevicePath;
   EFI_GUID               NameGuid;
   UINTN                  Shift;
@@ -167,11 +193,12 @@ UsbKbInstallKeyboardDeviceInfoProtocol (
   EFI_STATUS             Status;
   EFI_USB_HID_DESCRIPTOR HidDescriptor;
 
+  ASSERT_USB_KB_DEV_VALID (UsbKeyboardDevice);
+
   DevicePath.DevPath = UsbKeyboardDevice->DevicePath;
   NameGuid           = gApplePlatformInfoKeyboardGuid;
   Shift              = 20;
   Value              = 0;
-  Index              = 1;
 
   for (Index = 1; Index < 20; Index++) {
     if ((DevicePathType (DevicePath.DevPath) == HARDWARE_DEVICE_PATH)
@@ -193,44 +220,66 @@ UsbKbInstallKeyboardDeviceInfoProtocol (
 
   Size = sizeof (Data);
 
-  if (mPlatformInfo == NULL) {
-    gBS->LocateProtocol (
-           &gApplePlatformInfoDatabaseProtocolGuid,
-           NULL,
-           (VOID **)&mPlatformInfo
-           );
+  if (UsbKeyboardDevice->PlatformInfo == NULL) {
+    EfiLocateProtocol (
+      &gApplePlatformInfoDatabaseProtocolGuid,
+      NULL,
+      (VOID **)&UsbKeyboardDevice->PlatformInfo
+      );
   }
 
-  if (mPlatformInfo != NULL) {
-    Status = mPlatformInfo->GetFirstDataSize (mPlatformInfo, &NameGuid, &Size);
+  if (UsbKeyboardDevice->PlatformInfo != NULL) {
+    Status = UsbKeyboardDevice->PlatformInfo->GetFirstDataSize (
+                                                UsbKeyboardDevice->PlatformInfo,
+                                                &NameGuid,
+                                                &Size
+                                                );
 
     if (!EFI_ERROR (Status) && (Size == sizeof (Data))) {
-      Status = mPlatformInfo->GetFirstData (mPlatformInfo, &NameGuid, &Data, &Size);
+      Status = UsbKeyboardDevice->PlatformInfo->GetFirstData (
+                                                  UsbKeyboardDevice->PlatformInfo,
+                                                  &NameGuid,
+                                                  &Data,
+                                                  &Size
+                                                  );
 
-      if ((Status == EFI_SUCCESS) && (Value == Data) && !mIdsInitialized) {
+      if (!EFI_ERROR (Status) && (Value == Data) && !IdsInitialized) {
         Status = UsbGetHidDescriptor (
                    UsbIo,
                    UsbKeyboardDevice->InterfaceDescriptor.InterfaceNumber,
                    &HidDescriptor
                    );
 
-        if (Status == EFI_SUCCESS) {
+        if (!EFI_ERROR (Status)) {
           mCountryCode = HidDescriptor.CountryCode;
         }
 
-        mIdVendor       = UsbKeyboardDevice->DeviceDescriptor.IdVendor;
-        mIdProduct      = UsbKeyboardDevice->DeviceDescriptor.IdProduct;
-        mIdsInitialized = TRUE;
+        mIdVendor      = UsbKeyboardDevice->DeviceDescriptor.IdVendor;
+        mIdProduct     = UsbKeyboardDevice->DeviceDescriptor.IdProduct;
+        IdsInitialized = TRUE;
 
-        // TODO: This is never uninstalled.
-
-        gBS->InstallProtocolInterface (
-               NULL,
-               &gEfiKeyboardInfoProtocolGuid,
-               EFI_NATIVE_INTERFACE,
-               (VOID *)&mKeyboardInfo
-               );
+        EfiInstallMultipleProtocolInterfaces (
+          &gImageHandle,
+          &gEfiKeyboardInfoProtocolGuid,
+          (VOID *)&mKeyboardInfo,
+          NULL
+          );
       }
     }
   }
+}
+
+// UsbKbUninstallKeyboardDeviceInfoProtocol
+VOID
+UsbKbUninstallKeyboardDeviceInfoProtocol (
+  IN USB_KB_DEV  *UsbKeyboardDevice
+  )
+{
+  ASSERT_USB_KB_DEV_VALID (UsbKeyboardDevice);
+
+  EfiUninstallMultipleProtocolInterfaces (
+    gImageHandle,
+    &gEfiKeyboardInfoProtocolGuid,
+    (VOID *)&mKeyboardInfo
+    );
 }
