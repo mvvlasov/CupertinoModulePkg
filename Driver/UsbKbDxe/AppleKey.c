@@ -66,22 +66,22 @@ STATIC
 VOID
 UsbKbSetAppleKeyMapDb (
   IN USB_KB_DEV                       *UsbKeyboardDevice,
-  IN APPLE_KEY_MAP_DATABASE_PROTOCOL  *AppleKeyMapDb
+  IN APPLE_KEY_MAP_DATABASE_PROTOCOL  *KeyMapDb
   )
 {
   EFI_STATUS Status;
 
   ASSERT_USB_KB_DEV_VALID (UsbKeyboardDevice);
-  ASSERT (AppleKeyMapDb != NULL);
+  ASSERT (KeyMapDb != NULL);
 
-  Status = AppleKeyMapDb->CreateKeyStrokesBuffer (
-                            AppleKeyMapDb,
-                            6,
-                            &UsbKeyboardDevice->KeyMapDbIndex
-                            );
+  Status = KeyMapDb->CreateKeyStrokesBuffer (
+                       KeyMapDb,
+                       6,
+                       &UsbKeyboardDevice->KeyMapDbIndex
+                       );
 
   if (!EFI_ERROR (Status)) {
-    UsbKeyboardDevice->KeyMapDb = AppleKeyMapDb;
+    UsbKeyboardDevice->KeyMapDb = KeyMapDb;
   }
 }
 
@@ -99,7 +99,7 @@ UsbKbAppleKeyMapDbInstallNotify (
   )
 {
   EFI_STATUS                      Status;
-  APPLE_KEY_MAP_DATABASE_PROTOCOL *AppleKeyMapDb;
+  APPLE_KEY_MAP_DATABASE_PROTOCOL *KeyMapDb;
   USB_KB_DEV                      *UsbKeyboardDevice;
 
   ASSERT (Event != NULL);
@@ -109,14 +109,14 @@ UsbKbAppleKeyMapDbInstallNotify (
   Status = EfiLocateProtocol (
              &gAppleKeyMapDatabaseProtocolGuid,
              mAppleKeyMapDbRegistration,
-             (VOID **)&AppleKeyMapDb
+             (VOID **)&KeyMapDb
              );
 
   ASSERT (Status != EFI_NOT_FOUND);
 
   UsbKeyboardDevice = (USB_KB_DEV *)Context;
 
-  UsbKbSetAppleKeyMapDb (UsbKeyboardDevice, AppleKeyMapDb);
+  UsbKbSetAppleKeyMapDb (UsbKeyboardDevice, KeyMapDb);
 
   EfiCloseEvent (UsbKeyboardDevice->KeyMapInstallNotifyEvent);
 
@@ -130,18 +130,18 @@ UsbKbLocateAppleKeyMapDb (
   )
 {
   EFI_STATUS                      Status;
-  APPLE_KEY_MAP_DATABASE_PROTOCOL *AppleKeyMapDb;
+  APPLE_KEY_MAP_DATABASE_PROTOCOL *KeyMapDb;
 
   ASSERT_USB_KB_DEV_VALID (UsbKeyboardDevice);
 
   Status = EfiLocateProtocol (
              &gAppleKeyMapDatabaseProtocolGuid,
              NULL,
-             (VOID **)&AppleKeyMapDb
+             (VOID **)&KeyMapDb
              );
 
   if (!EFI_ERROR (Status)) {
-    UsbKbSetAppleKeyMapDb (UsbKeyboardDevice, AppleKeyMapDb);
+    UsbKbSetAppleKeyMapDb (UsbKeyboardDevice, KeyMapDb);
   } else if (PcdGetBool (PcdNotifyAppleKeyMapDbInUsbKbDriver)) {
     UsbKeyboardDevice->KeyMapInstallNotifyEvent = MiscCreateNotifySignalEvent (
                                                     UsbKbAppleKeyMapDbInstallNotify,
