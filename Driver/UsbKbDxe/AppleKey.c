@@ -24,11 +24,15 @@
 #include <Library/MiscEventLib.h>
 
 // ASSERT_USB_KB_DEV_VALID
-#define ASSERT_USB_KB_DEV_VALID(UsbKbDev)                                  \
-  do {                                                                     \
-    ASSERT (UsbKbDev != NULL);                                             \
-    ASSERT (((USB_KB_DEV *)UsbKbDev)->Signature == USB_KB_DEV_SIGNATURE);  \
-  } while (FALSE)
+#if !defined (MDEPKG_NDEBUG)
+  #define ASSERT_USB_KB_DEV_VALID(UsbKbDev)                    \
+    do {                                                       \
+      ASSERT ((UsbKbDev) != NULL);                             \
+      ASSERT ((UsbKbDev)->Signature == USB_KB_DEV_SIGNATURE);  \
+    } while (FALSE)
+#else
+  #define ASSERT_USB_KB_DEV_VALID(UsbKbDev)
+#endif // !MDEPKG_NDEBUG
 
 // mIdVendor
 STATIC UINT16 mIdVendor = 0;
