@@ -107,7 +107,7 @@ UsbKbAppleKeyMapDbInstallNotify (
   USB_KB_DEV                      *UsbKeyboardDevice;
 
   ASSERT (Event != NULL);
-  ASSERT_USB_KB_DEV_VALID (Context);
+  ASSERT_USB_KB_DEV_VALID ((USB_KB_DEV *)Context);
   ASSERT (((USB_KB_DEV *)Context)->KeyMapInstallNotifyEvent == Event);
 
   Status = EfiLocateProtocol (

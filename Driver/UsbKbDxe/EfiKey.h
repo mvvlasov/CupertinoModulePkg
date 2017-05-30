@@ -15,7 +15,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define _EFI_USB_KB_H_
 
 
-#include <AppleUefi.h>
+#include <Uefi.h>
 
 #include <IndustryStandard/AppleHid.h>
 
