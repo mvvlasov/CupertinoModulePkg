@@ -985,8 +985,8 @@ KeyboardHandler (
   UINT8               NewRepeatKey;
   UINT32              UsbStatus;
   EFI_KEY_DESCRIPTOR  *KeyDescriptor;
-  UINTN               NumberOfKeys;
-  APPLE_KEY           Keys[8];
+  UINTN               NumberOfKeyCodes;
+  APPLE_KEY_CODE      KeyCodes[8];
 
   ASSERT (Context != NULL);
 
@@ -1087,16 +1087,19 @@ KeyboardHandler (
   //
   // Parse the modifier key, which is the first byte of keyboard input report.
   //
-  CurModifierMap  = CurKeyCodeBuffer[0];
-  NumberOfKeys    = 0;
+  CurModifierMap   = CurKeyCodeBuffer[0];
+  NumberOfKeyCodes = 0;
 
   //
   // Pass the data to the Apple protocol
   //
   for (Index = 2; Index < 8; Index++) {
     if (USBKBD_VALID_KEYCODE (CurKeyCodeBuffer[Index])) {
-      Keys[NumberOfKeys] = APPLE_HID_USB_KB_KP_USAGE (CurKeyCodeBuffer[Index]);
-      ++NumberOfKeys;
+      KeyCodes[NumberOfKeyCodes] = APPLE_HID_USB_KB_KP_USAGE (
+                                     CurKeyCodeBuffer[Index]
+                                     );
+
+      ++NumberOfKeyCodes;
     }
   }
 
@@ -1105,8 +1108,8 @@ KeyboardHandler (
                                    UsbKeyboardDevice->KeyMapDb,
                                    UsbKeyboardDevice->KeyMapDbIndex,
                                    (APPLE_MODIFIER_MAP)CurModifierMap,
-                                   NumberOfKeys,
-                                   &Keys[0]
+                                   NumberOfKeyCodes,
+                                   &KeyCodes[0]
                                    );
   }
 
