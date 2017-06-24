@@ -200,7 +200,7 @@ UsbKbInstallKeyboardDeviceInfoProtocol (
   ASSERT_USB_KB_DEV_VALID (UsbKeyboardDevice);
 
   DevicePath.DevPath = UsbKeyboardDevice->DevicePath;
-  NameGuid           = gApplePlatformInfoKeyboardGuid;
+  NameGuid           = gAppleKeyboardPlatformInfoGuid;
   Shift              = 20;
   Value              = 0;
 

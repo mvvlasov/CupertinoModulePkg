@@ -84,7 +84,7 @@
   gEfiHiiKeyBoardLayoutGuid                     ## SOMETIMES_CONSUMES ## Event
   gUsbKeyboardLayoutPackageGuid                 ## SOMETIMES_CONSUMES ## HII
   gUsbKeyboardLayoutKeyGuid                     ## SOMETIMES_PRODUCES ## UNDEFINED
-  gApplePlatformInfoKeyboardGuid                ## SOMETIMES_CONSUMES
+  gAppleKeyboardPlatformInfoGuid                ## SOMETIMES_CONSUMES
 
 [Protocols]
   gEfiUsbIoProtocolGuid                         ## TO_START
