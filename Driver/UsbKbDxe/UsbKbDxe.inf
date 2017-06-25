@@ -59,7 +59,7 @@
   MdeModulePkg/MdeModulePkg.dec
   CupertinoModulePkg/CupertinoModulePkg.dec
   EfiMiscPkg/EfiMiscPkg.dec
-  ApplePkg/ApplePkg.dec
+  EfiPkg/EfiPkg.dec
 
 [LibraryClasses]
   MemoryAllocationLib
